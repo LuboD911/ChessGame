@@ -1,9 +1,13 @@
+'''
+Main driver file. Responsible for handling user's input and displaying the current GameState object
+'''
+
 import pygame as p
 import ChessEngine
 
-WIDTH = HEIGHT = 512
+WIDTH = HEIGHT = 512  # the size of the window
 DIMENSION = 8  # 8x8 dimensions of a chess board
-SQ_SIZE = WIDTH // DIMENSION
+SQ_SIZE = WIDTH // DIMENSION  # square size
 MAX_FPS = 15
 IMAGES = {}
 
@@ -14,10 +18,15 @@ def load_images():
         IMAGES[piece] = p.transform.scale(p.image.load('Chess_projects_pics/' + piece + '.png'), (SQ_SIZE, SQ_SIZE))
 
 
+'''
+Handle user's input and updating the graphics
+'''
+
+
 def main():
-    p.init()
-    screen = p.display.set_mode((WIDTH, HEIGHT))
-    clock = p.time.Clock()
+    p.init() # initialize all imported pygame modules
+    screen = p.display.set_mode((WIDTH, HEIGHT)) # initialize the window
+    clock = p.time.Clock() # create an object to help track time. We will use that for the animation (for  FPS)
     screen.fill(p.Color('white'))
     gs = ChessEngine.GameState()
     valid_moves = gs.get_all_valid_moves()
@@ -25,8 +34,8 @@ def main():
     animate = False  # flag variable for when we should animate
     load_images()
     running = True
-    sq_selected = ()
-    player_clicks = []
+    sq_selected = () # keep track of the last click
+    player_clicks = [] # keep track of player's clicks ((start_row, start_col), (end_row, end_col))
     game_over = False
 
     while running:
@@ -36,16 +45,16 @@ def main():
             # mouse handler
             elif e.type == p.MOUSEBUTTONDOWN:
                 if not game_over:
-                    location = p.mouse.get_pos()
+                    location = p.mouse.get_pos() # (x, y) mouse position
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
-                    if sq_selected == (row, col):
+                    if sq_selected == (row, col): # user clicked the same square twice
                         sq_selected = ()
                         player_clicks = []
                     else:
                         sq_selected = (row, col)
                         player_clicks.append(sq_selected)
-                    if len(player_clicks) == 2:
+                    if len(player_clicks) == 2: # if len == 2, you got a start and an end position
                         move = ChessEngine.Move(player_clicks[0], player_clicks[1], gs.board)
                         print(move.get_chess_notation())
                         for i in range(len(valid_moves)):
@@ -85,18 +94,18 @@ def main():
             game_over = True
             draw_text(screen, 'Stalemate')
         clock.tick(MAX_FPS)
-        p.display.flip()
+        p.display.flip() # update the display
 
 
 def highlight_squares(screen, gs, valid_moves, sq_selected):
     if sq_selected != ():
         r, c = sq_selected
-        if gs.board[r][c][0] == ('w' if gs.white_to_move else 'b'):
+        if gs.board[r][c][0] == ('w' if gs.white_to_move else 'b'): # if its white/black to move and you clicked white/black figure
             # highlight selected square
             s = p.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(120)  # 0 = transparent, 255 = opaque
             s.fill(p.Color('blue'))
-            screen.blit(s, (c * SQ_SIZE, r * SQ_SIZE))
+            screen.blit(s, (c * SQ_SIZE, r * SQ_SIZE)) # draw one image onto another(highlight it)
             # highlight moves
             s.fill(p.Color('green'))
             for move in valid_moves:
@@ -115,7 +124,7 @@ def draw_board(screen):
     colors = [p.Color('white'), p.Color('gray')]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
-            color = colors[((r + c) % 2)]
+            color = colors[((r + c) % 2)] # if it's 0 it's white otherwise is gray
             p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 
@@ -124,16 +133,16 @@ def draw_pieces(screen, board):
         for c in range(DIMENSION):
             piece = board[r][c]
             if piece != '--':  # not empty square
-                screen.blit(IMAGES[piece], p.Rect(int(c * SQ_SIZE),int(r * SQ_SIZE), SQ_SIZE, SQ_SIZE))
+                screen.blit(IMAGES[piece], p.Rect(int(c * SQ_SIZE), int(r * SQ_SIZE), SQ_SIZE, SQ_SIZE))
 
 
 def draw_text(screen, text):
     font = p.font.SysFont("Helvetica", 32, True, False)
-    text_object = font.render(text, 0, p.Color('Gray'))
+    text_object = font.render(text, True, p.Color('Gray'))
     text_location = p.Rect(0, 0, WIDTH, HEIGHT).move(int(WIDTH / 2 - text_object.get_width() / 2),
                                                      int(HEIGHT / 2 - text_object.get_height() / 2))
     screen.blit(text_object, text_location)
-    text_object = font.render(text, 0, p.Color('Black'))
+    text_object = font.render(text, True, p.Color('Black'))
     screen.blit(text_object, text_location.move(2, 2))
 
 
@@ -143,20 +152,22 @@ def animate_move(move, screen, board, clock):
     dC = move.end_col - move.start_col
     frames_per_square = 10
     frame_count = (abs(dR) + abs(dC)) * frames_per_square
-    for frame in range(frame_count + 1):
+    for frame in range(frame_count +1):
         r, c = (move.start_row + dR * frame / frame_count, move.start_col + dC * frame / frame_count)
         draw_board(screen)
         draw_pieces(screen, board)
         color = colors[(move.end_row + move.end_col) % 2]
-        end_square = p.Rect(move.end_col*SQ_SIZE, move.end_row*SQ_SIZE, SQ_SIZE, SQ_SIZE)
+        end_square = p.Rect(move.end_col * SQ_SIZE, move.end_row * SQ_SIZE, SQ_SIZE, SQ_SIZE)
         p.draw.rect(screen, color, end_square)
         if move.piece_captured != '--':
             screen.blit(IMAGES[move.piece_captured], end_square)
 
-        #draw moving piece
-        screen.blit(IMAGES[move.piece_moved], p.Rect(int(c*SQ_SIZE), int(r*SQ_SIZE), SQ_SIZE, SQ_SIZE))
+        # draw moving piece
+        screen.blit(IMAGES[move.piece_moved], p.Rect(int(c * SQ_SIZE), int(r * SQ_SIZE), SQ_SIZE, SQ_SIZE))
         p.display.flip()
         clock.tick(60)
 
+
 if __name__ == '__main__':
     main()
+
